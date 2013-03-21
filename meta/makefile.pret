@@ -1,0 +1,8 @@
+# This file provides instructions for packaging.
+
+`Syntax-Highlight-RDF`
+	perl_version_from m`Syntax::Highlight::RDF`;
+	version_from      m`Syntax::Highlight::RDF`;
+	readme_from       m`Syntax::Highlight::RDF` ;
+	.
+
