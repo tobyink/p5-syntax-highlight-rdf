@@ -4,10 +4,9 @@ use warnings;
 
 use Syntax::Highlight::RDF;
 
-my $data = do { local $/ = <DATA> };
-my $hl   = "Syntax::Highlight::RDF"->new;
+my $hl = "Syntax::Highlight::RDF"->new;
 
-for my $tok (@{ $hl->tokenize(\$data) })
+for my $tok (@{ $hl->tokenize(\*DATA) })
 {
 	print $tok->TO_HTML;
 }

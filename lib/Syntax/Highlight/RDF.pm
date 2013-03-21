@@ -66,6 +66,8 @@ use Throwable::Factory
 
 use Moo;
 
+use IO::Detect qw( as_filehandle );
+
 use constant {
 	MODE_NTRIPLES       => 0,
 	MODE_TURTLE         => 1,
@@ -169,7 +171,11 @@ sub tokenize
 {
 	my $self = shift;
 	my ($text_ref, $base) = @_;
-	$self->_remaining($text_ref);
+	$self->_remaining(
+		ref($text_ref) eq 'SCALAR'
+			? $text_ref
+			: do { local $/; my $h = as_filehandle($text_ref); \(my $t = <$h>) }
+	);
 	$self->_tokens([]);
 	$self->_base($base // "http://www.example.net/");
 	
