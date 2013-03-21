@@ -52,7 +52,16 @@ use Throwable::Factory
 
 {
 	no strict 'refs';
-	*{Token."::TO_STRING"} = sub { sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling };
+	*{Token."::TO_STRING"} = sub {
+		sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling
+	};
+	*{Token."::TO_HTML"}   = sub {
+		require HTML::HTML5::Entities;
+		sprintf "<span class=\"rdf_%s\">%s</span>", lc $_[0]->TYPE, HTML::HTML5::Entities::encode_entities($_[0]->spelling)
+	};
+	*{Whitespace."::TO_HTML"}   = sub {
+		$_[0]->spelling;
+	};
 }
 
 use Moo;
