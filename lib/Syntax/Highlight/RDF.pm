@@ -204,11 +204,11 @@ sub tokenize
 		{
 			$self->_pull_token('^^', Datatype);
 		}
-		elsif ($self->_peek('^') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('^') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('^', Path);
 		}
-		elsif ($self->_peek('!') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('!') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('!', Path);
 		}
@@ -224,23 +224,23 @@ sub tokenize
 		{
 			$self->_pull_token('.', Punctuation);
 		}
-		elsif ($self->_peek('@prefix') && ($mode & MODE_TURTLE) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('@prefix') && ($mode & MODE_TURTLE))
 		{
 			$self->_pull_token('@prefix', AtRule);
 		}
-		elsif ($self->_peek('@base') && ($mode & MODE_TURTLE) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('@base') && ($mode & MODE_TURTLE))
 		{
 			$self->_pull_token('@base', AtRule);
 		}
-		elsif ($self->_peek('@keywords') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('@keywords') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('@keywords', AtRule);
 		}
-		elsif ($self->_peek('@forAll') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('@forAll') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('@forAll', AtRule);
 		}
-		elsif ($self->_peek('@forSome') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('@forSome') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('@forSome', AtRule);
 		}
@@ -328,23 +328,23 @@ sub tokenize
 		{
 			$self->_pull_token('a', Shorthand);
 		}
-		elsif ($self->_peek('=>') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('=>') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('=>', Shorthand);
 		}
-		elsif ($self->_peek('<=') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('<=') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('<=', Shorthand);
 		}
-		elsif ($self->_peek('=') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('=') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('=', Shorthand);
 		}
-		elsif ($self->_peek('is') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('is') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('is', IsOf);
 		}
-		elsif ($self->_peek('of') && ($mode & MODE_NOTATION_3) && !($mode & MODE_SPARQL_QUERY))
+		elsif ($self->_peek('of') && ($mode & MODE_NOTATION_3))
 		{
 			$self->_pull_token('of', IsOf);
 		}
