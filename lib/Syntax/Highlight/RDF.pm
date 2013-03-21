@@ -98,9 +98,9 @@ sub _peek
 sub _pull_token
 {
 	my $self = shift;
-	my ($spelling, $class) = @_;
+	my ($spelling, $class, %more) = @_;
 	substr(${$self->_remaining}, 0, length $spelling, "");
-	push @{$self->_tokens}, $class->new(spelling => $spelling);
+	push @{$self->_tokens}, $class->new(spelling => $spelling, %more);
 }
 
 sub _pull_bnode
@@ -140,16 +140,20 @@ sub _pull_curie
 		if ${$self->_remaining} =~ m/^(([$nameStartChar2][$nameChar]*)?:([$nameStartChar2][$nameChar]*)?)/;
 }
 
-sub _pull_longstring
-{
-	my $self = shift;
-	NotImplemented->throw;
-}
-
 sub _pull_shortstring
 {
-	my $self = shift;
-	NotImplemented->throw;
+	my $self = shift;	
+	my $quote_char = substr(${$self->_remaining}, 0, 1);
+	$self->_pull_token($1, ShortString, quote_char => $quote_char)
+		if ${$self->_remaining} =~ m/^($quote_char(?:\\\\|\\.|[^$quote_char])*?$quote_char)/;
+}
+
+sub _pull_longstring
+{
+	my $self = shift;	
+	my $quote_char = substr(${$self->_remaining}, 0, 1);
+	$self->_pull_token($1, LongString, quote_char => $quote_char)
+		if ${$self->_remaining} =~ m/^($quote_char{3}.*?$quote_char{3})/ms;
 }
 
 sub tokenize
@@ -401,7 +405,6 @@ This software is copyright (c) 2013 by Toby Inkster.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
-
 
 =head1 DISCLAIMER OF WARRANTIES
 

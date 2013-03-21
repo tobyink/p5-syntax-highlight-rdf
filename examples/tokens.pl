@@ -15,5 +15,7 @@ for my $tok (@{ $hl->tokenize(\$data) })
 __DATA__
 @prefix foo: <http://example.com/foo> .
 
-<xyz> foo:bar 123 .
+<xyz>
+   foo:bar 123;
+   foo:baz "Yeah\"Baby\"Yeah".
 
