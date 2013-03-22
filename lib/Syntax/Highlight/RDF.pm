@@ -69,7 +69,7 @@ use Throwable::Factory
 ;
 
 {
-	use HTML::HTML5::Entities qw/encode_entities/;	
+	use HTML::HTML5::Entities qw/encode_entities/;
 	no strict 'refs';
 	*{Feature    . "::tok"}        = sub { sprintf "%s~", $_[0]->TYPE };
 	*{Token      . "::tok"}        = sub { sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling };
@@ -753,9 +753,21 @@ sub _resolve_uri
 	my ($relative, $base) = @_;
 	return $relative unless length $base;
 	
-	# XXX - cope with situation where $base exists but is relative
-	
 	require URI;
+	
+	# Where the base itself is relative
+	if (not URI->new($base)->scheme)
+	{
+		if ($base =~ m{^/})
+		{
+			return "URI"->new_abs(@_)->as_string;
+		}
+		else
+		{
+			return substr("URI"->new_abs(@_)->as_string, 1);
+		}
+	}
+	
 	"URI"->new_abs(@_)->as_string;
 }
 
@@ -951,7 +963,7 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
-	                  |  Syntax::Highlight::RDF::MODE_TURTLE;
+		| Syntax::Highlight::RDF::MODE_TURTLE;
 	sub _serializer
 	{
 		eval { require RDF::TrineX::Serializer::MockTurtleSoup }
@@ -968,8 +980,8 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
-	                  |  Syntax::Highlight::RDF::MODE_TURTLE
-	                  |  Syntax::Highlight::RDF::MODE_NOTATION_3;
+		| Syntax::Highlight::RDF::MODE_TURTLE
+		| Syntax::Highlight::RDF::MODE_NOTATION_3;
 	sub _serializer
 	{
 		require RDF::Trine::Serializer::Notation3;
@@ -984,8 +996,8 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
-	                  |  Syntax::Highlight::RDF::MODE_TURTLE
-	                  |  Syntax::Highlight::RDF::MODE_SPARQL;
+		| Syntax::Highlight::RDF::MODE_TURTLE
+		| Syntax::Highlight::RDF::MODE_SPARQL;
 }
 
 {
@@ -995,8 +1007,8 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
-	                  |  Syntax::Highlight::RDF::MODE_TURTLE
-	                  |  Syntax::Highlight::RDF::MODE_SPARQL;
+		| Syntax::Highlight::RDF::MODE_TURTLE
+		| Syntax::Highlight::RDF::MODE_SPARQL;
 }
 
 {
@@ -1006,9 +1018,9 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
-	                  |  Syntax::Highlight::RDF::MODE_TURTLE
-	                  |  Syntax::Highlight::RDF::MODE_NOTATION_3
-	                  |  Syntax::Highlight::RDF::MODE_PRETDSL;
+		| Syntax::Highlight::RDF::MODE_TURTLE
+		| Syntax::Highlight::RDF::MODE_NOTATION_3
+		| Syntax::Highlight::RDF::MODE_PRETDSL;
 }
 
 {
@@ -1032,8 +1044,8 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
-	                  |  Syntax::Highlight::RDF::MODE_TURTLE
-	                  |  Syntax::Highlight::RDF::MODE_TRIG;
+		| Syntax::Highlight::RDF::MODE_TURTLE
+		| Syntax::Highlight::RDF::MODE_TRIG;
 }
 
 sub highlighter
@@ -1170,6 +1182,24 @@ is subject to change, but currently they support C<< TYPE >> and
 C<< spelling >> methods.
 
 =back
+
+=begin private
+
+=item MODE_NTRIPLES       => 0,
+
+=item MODE_TURTLE         => 1,
+
+=item MODE_NOTATION_3     => 2,
+
+=item MODE_SPARQL         => 4,
+
+=item MODE_PRETDSL        => 8,
+
+=item MODE_TRIG           => 16,
+
+=item mode
+
+=end private
 
 =head1 BUGS
 
