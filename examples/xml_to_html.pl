@@ -6,7 +6,10 @@ use Syntax::Highlight::RDF;
 
 my $hl = "Syntax::Highlight::RDF"->highlighter("XML");
 
-print $hl->highlight(\*DATA);
+say "<style type='text/css'>";
+say ".$_ { $Syntax::Highlight::XML::STYLE{$_} }" for sort keys %Syntax::Highlight::XML::STYLE;
+say "</style>";
+say "<pre>", $hl->highlight(\*DATA, "http://www.example.net/"), "</pre>";
 
 __DATA__
 <?xml version="1.0"?>

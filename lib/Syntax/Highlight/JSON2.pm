@@ -47,6 +47,19 @@ use warnings;
 		*{Whitespace . "::TO_HTML"}  = sub { $_[0]->spelling };
 	}
 
+	our %STYLE = (
+		json_brace       => 'color:#990000;font-weight:bold',
+		json_bracket     => 'color:#990000;font-weight:bold',
+		json_punctuation => 'color:#990000;font-weight:bold',
+		json_string      => 'color:#cc00cc',
+		json_keyword     => 'color:#cc00cc;font-weight:bold;font-style:italic',
+		json_boolean     => 'color:#cc00cc;font-weight:bold;font-style:italic',
+		json_unknown     => 'color:#ffff00;background-color:#660000;font-weight:bold',
+		json_number_double     => 'color:#cc00cc;font-weight:bold',
+		json_number_decimal    => 'color:#cc00cc;font-weight:bold',
+		json_number_integer    => 'color:#cc00cc;font-weight:bold',
+	);
+
 	use Moo;
 
 	has _tokens     => (is => 'rw');

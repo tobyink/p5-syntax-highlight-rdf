@@ -58,8 +58,7 @@ use Throwable::Factory
 ;
 
 {
-	use HTML::HTML5::Entities qw/encode_entities/;
-	
+	use HTML::HTML5::Entities qw/encode_entities/;	
 	no strict 'refs';
 	*{Feature    . "::tok"}        = sub { sprintf "%s~", $_[0]->TYPE };
 	*{Token      . "::tok"}        = sub { sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling };
@@ -111,6 +110,37 @@ use Throwable::Factory
 		sprintf "<span %s>%s</span>", join(" ", @attrs), encode_entities($_[0]->spelling)
 	};
 }
+
+our %STYLE = (
+	rdf_brace       => 'color:#990000;font-weight:bold',
+	rdf_bracket     => 'color:#990000;font-weight:bold',
+	rdf_parenthesis => 'color:#990000;font-weight:bold',
+	rdf_punctuation => 'color:#990000;font-weight:bold',
+	rdf_datatype    => 'color:#990000;font-weight:bold',
+	rdf_atrule      => 'color:#000000;font-weight:bold',
+	rdf_comment     => 'color:#669933;font-style:italic',
+	rdf_isof        => 'color:#000099;font-style:italic',
+	rdf_sparql_keyword    => 'color:#000000;font-weight:bold;font-style:italic',
+	rdf_sparql_operator   => 'color:#000000;font-weight:bold;font-style:italic',
+	rdf_sparql_function   => 'color:#000000;font-weight:bold;font-style:italic',
+	rdf_sparql_aggregate  => 'color:#000000;font-weight:bold;font-style:italic',
+	rdf_sparql_ordering   => 'color:#000000;font-weight:bold;font-style:italic',
+	rdf_unknown     => 'color:#ffff00;background-color:#660000;font-weight:bold',
+	rdf_uriref      => 'color:#0000cc',
+	rdf_curie       => 'color:#000099;font-weight:bold',
+	rdf_bnode       => 'color:#009900;font-weight:bold',
+	rdf_shorthand   => 'color:#000099;font-weight:bold;font-style:italic',
+	rdf_variable    => 'color:#009900;font-weight:bold;font-style:italic',
+	rdf_shortstring => 'color:#cc00cc',
+	rdf_longstring  => 'color:#cc00cc;background-color:#ffddff;font-style:italic',
+	rdf_language    => 'color:#ff0000',
+	rdf_number_double     => 'color:#cc00cc;font-weight:bold',
+	rdf_number_decimal    => 'color:#cc00cc;font-weight:bold',
+	rdf_number_integer    => 'color:#cc00cc;font-weight:bold',
+	rdf_boolean     => 'color:#cc00cc;font-weight:bold;font-style:italic',
+	rdf_path        => 'color:#000099;background-color:#99ffff;font-weight:bold',
+	rdf_name        => 'color:#000099;background-color:#ffff99;font-weight:bold',
+);
 
 use Moo;
 
@@ -817,8 +847,8 @@ sub highlighter
 	$hint =~ m{(trig)}i             and return "$class\::TriG"->new;
 	$hint =~ m{(n3|notation.?3)}i   and return "$class\::Notation_3"->new;
 	$hint =~ m{(pret)}i             and return "$class\::Pretdsl"->new;
-	$hint =~ m{(sparql.?update)}i   and return "$class\::Sparql_Update"->new;
-	$hint =~ m{(sparql)}i           and return "$class\::Sparql_Query"->new;
+	$hint =~ m{(sparql.?update)}i   and return "$class\::SPARQL_Update"->new;
+	$hint =~ m{(sparql)}i           and return "$class\::SPARQL_Query"->new;
 	$hint =~ m{(text/plain)}i       and return "$class\::NTriples"->new;
 	
 	return $class->new;

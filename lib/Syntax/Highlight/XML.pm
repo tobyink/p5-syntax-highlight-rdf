@@ -8,6 +8,20 @@ use warnings;
 	our $AUTHORITY = 'cpan:TOBYINK';
 	our $VERSION   = '0.001';
 	
+	our %STYLE = (
+		xml_pointy      => '',
+		xml_slash       => '',
+		xml_equals      => '',
+		xml_tagname     => '',
+		xml_attributename     => 'color:#009999',
+		xml_attributevalue    => 'color:#990099',
+		xml_tag_start   => 'color:#0000CC',
+		xml_tag_is_pi   => 'font-weight:bold',
+		xml_tag_is_doctype    => 'font-weight:bold',
+		"xml_attribute_is_xmlns .xml_attributename" => 'color:#009900',
+		"xml_attribute_is_core  .xml_attributename" => 'color:#009900',
+	);
+
 	use MooX::Struct -retain, -rw,
 		Feature                   => [],
 		Token                     => [-extends => [qw<Feature>], qw($spelling!)],
