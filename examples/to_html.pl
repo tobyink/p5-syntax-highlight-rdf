@@ -6,13 +6,7 @@ use Syntax::Highlight::RDF;
 
 my $hl = "Syntax::Highlight::RDF"->new;
 
-$hl->tokenize(\*DATA);
-$hl->_fixup("http://www.example.net/");
-
-for my $tok (@{$hl->_tokens})
-{
-	print $tok->TO_HTML;
-}
+print $hl->highlightText(\*DATA, "http://www.example.net/");
 
 __DATA__
 @base <http://www.example.org/> .

@@ -54,6 +54,7 @@ use Throwable::Factory
 	Tokenization              => [qw( $remaining -caller )],
 	NotImplemented            => [qw( -notimplemented )],
 	WTF                       => [],
+	WrongInvocant             => [qw( -caller )],
 ;
 
 {
@@ -121,14 +122,13 @@ use constant {
 	MODE_NOTATION_3     => 2,
 	MODE_SPARQL         => 4,
 	MODE_PRETDSL        => 8,
+	MODE_TRIG           => 16,
 };
 
-my $default_mode = MODE_NTRIPLES | MODE_TURTLE | MODE_NOTATION_3 | MODE_SPARQL | MODE_PRETDSL;
+use constant mode => (MODE_NTRIPLES | MODE_TURTLE | MODE_NOTATION_3 | MODE_SPARQL | MODE_PRETDSL | MODE_TRIG);
 
 has _remaining => (is => "rw");
 has _tokens    => (is => "rw");
-has _base      => (is => "rw");
-has mode       => (is => "ro", default => sub { $default_mode });
 
 # XXX - May be able to get better regexps from Trine?
 my $nameStartChar  = qr{A-Za-z_\x{00C0}-\x{00D6}\x{00D8}-\x{00F6}\x{00F8}-\x{02FF}\x{0370}-\x{037D}\x{037F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}};
@@ -298,7 +298,7 @@ sub _pull_token
 
 sub _pull_bnode
 {
-	my $self = shift;	
+	my $self = shift;
 	${$self->_remaining} =~ m/^(_:[$nameStartChar][$nameChar]*)/
 		? $self->_pull_token($1, BNode)
 		: $self->_pull("_:", BNode)
@@ -306,7 +306,7 @@ sub _pull_bnode
 
 sub _pull_variable
 {
-	my $self = shift;	
+	my $self = shift;
 	${$self->_remaining} =~ m/^([\?\$][$nameStartChar][$nameChar]*)/
 		? $self->_pull_token($1, Variable)
 		: $self->_pull(substr(${$self->_remaining}, 0, 1), Variable)
@@ -336,7 +336,7 @@ sub _pull_curie
 # XXX - this is probably too naive
 sub _pull_shortstring
 {
-	my $self = shift;	
+	my $self = shift;
 	my $quote_char = substr(${$self->_remaining}, 0, 1);
 	$self->_pull_token($1, ShortString, quote_char => $quote_char)
 		if ${$self->_remaining} =~ m/^($quote_char(?:\\\\|\\.|[^$quote_char])*?$quote_char)/;
@@ -345,7 +345,7 @@ sub _pull_shortstring
 # XXX - this is probably too naive
 sub _pull_longstring
 {
-	my $self = shift;	
+	my $self = shift;
 	my $quote_char = substr(${$self->_remaining}, 0, 1);
 	$self->_pull_token($1, LongString, quote_char => $quote_char)
 		if ${$self->_remaining} =~ m/^($quote_char{3}.*?$quote_char{3})/ms;
@@ -354,6 +354,8 @@ sub _pull_longstring
 sub tokenize
 {
 	my $self = shift;
+	ref $self or WrongInvocant->throw("this is an object method!");
+	
 	my ($text_ref) = @_;
 	$self->_remaining(
 		ref($text_ref) eq 'SCALAR'
@@ -377,12 +379,13 @@ sub tokenize
 	my $sparqlOperator  = $_regexify->(@sparqlOperator);
 	
 	# Don't need to repeatedly call this method!
-	my $IS_NTRIPLES    = $self->mode & MODE_NTRIPLES;
-	my $IS_TURTLE      = $self->mode & MODE_TURTLE;
-	my $IS_NOTATION_3  = $self->mode & MODE_NOTATION_3;
-	my $IS_SPARQL      = $self->mode & MODE_SPARQL;
-	my $IS_PRETDSL     = $self->mode & MODE_PRETDSL;
-	my $ABOVE_NTRIPLES = $IS_TURTLE || $IS_NOTATION_3 || $IS_SPARQL || $IS_PRETDSL;
+	my $IS_NTRIPLES    = ($self->mode & MODE_NTRIPLES);
+	my $IS_TURTLE      = ($self->mode & MODE_TURTLE or $self->mode & MODE_TRIG or $self->mode & MODE_NOTATION_3 or $self->mode & MODE_PRETDSL);
+	my $IS_NOTATION_3  = ($self->mode & MODE_NOTATION_3 or $self->mode & MODE_PRETDSL);
+	my $IS_SPARQL      = ($self->mode & MODE_SPARQL);
+	my $IS_PRETDSL     = ($self->mode & MODE_PRETDSL);
+	my $IS_TRIG        = ($self->mode & MODE_TRIG);
+	my $ABOVE_NTRIPLES = ($IS_TURTLE or $IS_NOTATION_3 or $IS_SPARQL or $IS_PRETDSL or $IS_TRIG);
 	
 	# Declare this ahead of time for use in the big elsif!
 	my $matches;
@@ -393,11 +396,11 @@ sub tokenize
 		{
 			$self->_pull_whitespace;
 		}
-		elsif ($IS_NOTATION_3||$IS_SPARQL and $self->_peek('{'))
+		elsif ($IS_NOTATION_3||$IS_SPARQL||$IS_TRIG and $self->_peek('{'))
 		{
 			$self->_pull_token('{', Brace);
 		}
-		elsif ($IS_NOTATION_3||$IS_SPARQL and $self->_peek('}'))
+		elsif ($IS_NOTATION_3||$IS_SPARQL||$IS_TRIG and $self->_peek('}'))
 		{
 			$self->_pull_token('}', Brace);
 		}
@@ -421,6 +424,7 @@ sub tokenize
 		{
 			$self->_pull_token('^^', Datatype);
 		}
+		# Need to handle SPARQL property paths!
 		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^([\!\^])/))
 		{
 			$self->_pull_token($matches->[0], Path);
@@ -433,7 +437,7 @@ sub tokenize
 		{
 			$self->_pull_token('.', Punctuation);
 		}
-		elsif ($IS_NOTATION_3||$IS_TURTLE and $matches = $self->_peek(qr/^(\@(?:prefix|base))/))
+		elsif ($IS_NOTATION_3||$IS_TURTLE||$IS_TRIG and $matches = $self->_peek(qr/^(\@(?:prefix|base))/))
 		{
 			$self->_pull_token($matches->[0], AtRule);
 		}
@@ -541,6 +545,10 @@ sub tokenize
 		{
 			$self->_pull_token($matches->[0], Shorthand);
 		}
+		elsif ($IS_TRIG and $self->_peek("="))
+		{
+			$self->_pull_token("=", Shorthand);
+		}
 		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^(is|of)/i))
 		{
 			$self->_pull_token($matches->[0], IsOf);
@@ -552,7 +560,7 @@ sub tokenize
 		elsif ($matches = $self->_peek(qr/^([^\s\r\n]+)[\s\r\n]/ms))
 		{
 			$self->_pull_token($matches->[0], Unknown);
-		}		
+		}
 		elsif ($matches = $self->_peek(qr/^([^\s\r\n]+)$/ms))
 		{
 			$self->_pull_token($matches->[0], Unknown);
@@ -632,7 +640,7 @@ sub _fixup_prefix_declarations
 {
 	my $self = shift;
 	
-	my $tokens = $self->_tokens;	
+	my $tokens = $self->_tokens;
 	my $i = 0;
 	my $started;
 	my @bits;
@@ -705,6 +713,117 @@ sub _fixup_curies
 	}
 }
 
+sub highlight
+{
+	my $self = shift;
+	ref $self or WrongInvocant->throw("this is an object method!");
+	
+	my ($text, $base) = @_;
+	
+	$self->tokenize($text);
+	$self->_fixup($base);
+	
+	return join "", map $_->TO_HTML, @{$self->_tokens};
+}
+
+{
+	package Syntax::Highlight::RDF::NTriples;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
+}
+
+{
+	package Syntax::Highlight::RDF::Turtle;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
+	                  |  Syntax::Highlight::RDF::MODE_TURTLE;
+}
+
+{
+	package Syntax::Highlight::RDF::Notation_3;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
+	                  |  Syntax::Highlight::RDF::MODE_TURTLE
+	                  |  Syntax::Highlight::RDF::MODE_NOTATION_3;
+}
+
+{
+	package Syntax::Highlight::RDF::SPARQL_Query;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
+	                  |  Syntax::Highlight::RDF::MODE_TURTLE
+	                  |  Syntax::Highlight::RDF::MODE_SPARQL;
+}
+
+{
+	package Syntax::Highlight::RDF::SPARQL_Update;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
+	                  |  Syntax::Highlight::RDF::MODE_TURTLE
+	                  |  Syntax::Highlight::RDF::MODE_SPARQL;
+}
+
+{
+	package Syntax::Highlight::RDF::Pretdsl;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
+	                  |  Syntax::Highlight::RDF::MODE_TURTLE
+	                  |  Syntax::Highlight::RDF::MODE_NOTATION_3
+	                  |  Syntax::Highlight::RDF::MODE_PRETDSL;
+}
+
+{
+	package Syntax::Highlight::RDF::NQuads;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
+}
+
+{
+	package Syntax::Highlight::RDF::TriG;
+	use Moo;
+	extends "Syntax::Highlight::RDF";
+	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
+	                  |  Syntax::Highlight::RDF::MODE_TURTLE
+	                  |  Syntax::Highlight::RDF::MODE_TRIG;
+}
+
+sub highlighter
+{
+	my $class = shift;
+	$class eq __PACKAGE__ or WrongInvocant->throw("this is a factory method!");
+	
+	my ($hint) = @_;
+	
+	$hint =~ m{xml}i and do {
+		require Syntax::Highlight::XML;
+		return "Syntax::Highlight::XML"->new;
+	};
+	
+	$hint =~ m{json}i and do {
+		require Syntax::Highlight::JSON;
+		return "Syntax::Highlight::JSON"->new;
+	};
+	
+	$hint =~ m{(ttl|turtle)}i       and return "$class\::Turtle"->new;
+	$hint =~ m{(nt|n.?triples)}i    and return "$class\::NTriples"->new;
+	$hint =~ m{(nq|n.?quads)}i      and return "$class\::NQuads"->new;
+	$hint =~ m{(trig)}i             and return "$class\::TriG"->new;
+	$hint =~ m{(n3|notation.?3)}i   and return "$class\::Notation_3"->new;
+	$hint =~ m{(pret)}i             and return "$class\::Pretdsl"->new;
+	$hint =~ m{(sparql.?update)}i   and return "$class\::Sparql_Update"->new;
+	$hint =~ m{(sparql)}i           and return "$class\::Sparql_Query"->new;
+	$hint =~ m{(text/plain)}i       and return "$class\::NTriples"->new;
+	
+	return $class->new;
+}
+
 1;
 
 __END__
@@ -719,7 +838,90 @@ Syntax::Highlight::RDF - syntax highlighting for various RDF-related formats
 
 =head1 SYNOPSIS
 
+  use Syntax::Highlight::RDF;
+  my $syntax = "Syntax::Highlight::RDF"->highlighter("Turtle");
+  print $syntax->highlight($filehandle);
+
 =head1 DESCRIPTION
+
+Outputs pretty syntax-highlighted HTML for RDF-related formats. (Actually just
+adds C<< <span> >> elements with C<< class >> attributes. You're expected to
+bring your own CSS.
+
+=head2 Formats
+
+=over
+
+=item *
+
+N-Triples
+
+=item *
+
+N-Quads
+
+=item *
+
+Turtle
+
+=item *
+
+TriG
+
+=item *
+
+Notation 3
+
+=item *
+
+SPARQL Query 1.1
+
+=item *
+
+SPARQL Update 1.1
+
+=item *
+
+JSON - intended for RDF/JSON and SPARQL Results JSON, but just generic highlighting
+
+=item *
+
+XML - intended for RDF/XML and SPARQL Results XML, but just generic highlighting
+
+=back
+
+=head2 Methods
+
+=over
+
+=item C<< highlighter($format) >>
+
+Factory method; generally preferred over calling C<new> on a specific
+class.
+
+  "Syntax::Highlight::RDF"->highlighter("Turtle");
+  "Syntax::Highlight::RDF::Turtle"->new;  # avoid!
+
+=item C<< highlight($input, $base) >>
+
+Highlight some RDF.
+
+C<< $input >> may be a file handle, filename or a scalar ref of text.
+C<< $base >> is an optional base for resolving relative URIs.
+
+Returns a string of HTML.
+
+=item C<< tokenize($input) >>
+
+This is mostly intended for subclassing Syntax::Highlight::RDF.
+
+C<< $input >> may be a file handle, filename or a scalar ref of text.
+
+Returns an arrayref of token objects. The exact API for the token objects
+is subject to change, but currently they support C<< TYPE >> and
+C<< spelling >> methods.
+
+=back
 
 =head1 BUGS
 
@@ -727,6 +929,13 @@ Please report any bugs to
 L<http://rt.cpan.org/Dist/Display.html?Queue=Syntax-Highlight-RDF>.
 
 =head1 SEE ALSO
+
+L<PPI::HTML>,
+L<Syntax::Highlight::Engine::Kate>.
+
+L<RDF::Trine>, L<RDF::Query>.
+
+L<http://www.perlrdf.org/>.
 
 =head1 AUTHOR
 
