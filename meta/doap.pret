@@ -8,7 +8,7 @@
 	:homepage             <https://metacpan.org/release/Syntax-Highlight-RDF>;
 	:download-page        <https://metacpan.org/release/Syntax-Highlight-RDF>;
 	:bug-database         <http://rt.cpan.org/Dist/Display.html?Queue=Syntax-Highlight-RDF>;
-#	:repository           [ a :HgRepository; :browse <https://bitbucket.org/tobyink/p5-syntax-highlight-rdf> ];
+	:repository           [ a :HgRepository; :browse <https://bitbucket.org/tobyink/p5-syntax-highlight-rdf> ];
 	:created              2013-03-21;
 	:license              <http://dev.perl.org/licenses/>;
 	:maintainer           cpan:TOBYINK;
