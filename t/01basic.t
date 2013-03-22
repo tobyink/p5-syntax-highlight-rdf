@@ -6,6 +6,28 @@
 
 Test that Syntax::Highlight::RDF compiles.
 
+Also check HTML output for a few syntaxes:
+
+=over
+
+=item *
+
+Turtle
+
+=item *
+
+Pretdsl
+
+=item *
+
+JSON
+
+=item *
+
+XML
+
+=back
+
 =head1 AUTHOR
 
 Toby Inkster E<lt>tobyink@cpan.orgE<gt>.
