@@ -66,6 +66,7 @@ use warnings;
 	has _remaining  => (is => 'rw');
 	
 	use IO::Detect qw( as_filehandle );
+	use Scalar::Util qw( blessed );
 		
 	sub _peek
 	{
@@ -106,17 +107,58 @@ use warnings;
 			: $self->_pull_token('"', Unknown);
 	}
 	
+	sub _serializer
+	{
+		require RDF::Trine::Serializer::RDFJSON;
+		return "RDF::Trine::Serializer::RDFJSON";
+	}
+	
+	sub _scalarref
+	{
+		my $self = shift;
+		my ($thing) = @_;
+		
+		if (blessed $thing and $thing->isa("RDF::Trine::Model"))
+		{
+			$thing = $thing->as_hashref;
+		}
+		
+		if (blessed $thing and $thing->isa("RDF::Trine::Iterator") and $thing->can("as_json"))
+		{
+			my $t = $thing->as_json;
+			$thing = \$t
+		}
+		
+		if (blessed $thing and $thing->isa("RDF::Trine::Iterator") and $self->can("_serializer"))
+		{
+			my $t = $self->_serializer->new->serialize_iterator_to_string($thing);
+			$thing = \$t
+		}
+		
+		if (!blessed $thing and ref $thing =~ /^(HASH|ARRAY)$/)
+		{
+			require JSON;
+			my $t = JSON::to_json($thing, { pretty => 1, canonical => 1 });
+			$thing = \$t;
+		}
+		
+		unless (ref $thing eq 'SCALAR')
+		{
+			my $fh = as_filehandle($thing);
+			local $/;
+			my $t = <$fh>;
+			$thing = \$t;
+		}
+		
+		return $thing;
+	}
+	
 	sub tokenize
 	{
 		my $self = shift;
 		ref $self or WrongInvocant->throw("this is an object method!");
 		
-		my ($text_ref) = @_;
-		$self->_remaining(
-			ref($text_ref) eq 'SCALAR'
-				? $text_ref
-				: do { local $/; my $h = as_filehandle($text_ref); \(my $t = <$h>) }
-		);
+		$self->_remaining( $self->_scalar_ref(@_) );
 		$self->_tokens([]);
 		
 		# Declare this ahead of time for use in the big elsif!
@@ -178,11 +220,12 @@ use warnings;
 		
 		return $self->_tokens;
 	}
-
+	
 	sub highlight
 	{
 		my $self = shift;
 		ref $self or WrongInvocant->throw("this is an object method!");
+		
 		$self->tokenize(@_);
 		return join "", map $_->TO_HTML, @{$self->_tokens};
 	}

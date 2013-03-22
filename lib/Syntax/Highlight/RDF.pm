@@ -145,6 +145,7 @@ our %STYLE = (
 use Moo;
 
 use IO::Detect qw( as_filehandle );
+use Scalar::Util qw( blessed );
 
 use constant {
 	MODE_NTRIPLES       => 0,
@@ -381,17 +382,40 @@ sub _pull_longstring
 		if ${$self->_remaining} =~ m/^($quote_char{3}.*?$quote_char{3})/ms;
 }
 
+sub _scalarref
+{
+	my $self = shift;
+	my ($thing) = @_;
+	
+	if (blessed $thing and $thing->isa("RDF::Trine::Model") and $self->can("_serializer"))
+	{
+		my $t = $self->_serializer->new->serialize_model_to_string($thing);
+		$thing = \$t
+	}
+	
+	if (blessed $thing and $thing->isa("RDF::Trine::Iterator") and $self->can("_serializer"))
+	{
+		my $t = $self->_serializer->new->serialize_iterator_to_string($thing);
+		$thing = \$t
+	}
+	
+	unless (ref $thing eq 'SCALAR')
+	{
+		my $fh = as_filehandle($thing);
+		local $/;
+		my $t = <$fh>;
+		$thing = \$t;
+	}
+	
+	return $thing;
+}
+
 sub tokenize
 {
 	my $self = shift;
 	ref $self or WrongInvocant->throw("this is an object method!");
 	
-	my ($text_ref) = @_;
-	$self->_remaining(
-		ref($text_ref) eq 'SCALAR'
-			? $text_ref
-			: do { local $/; my $h = as_filehandle($text_ref); \(my $t = <$h>) }
-	);
+	$self->_remaining( $self->_scalarref(@_) );
 	$self->_tokens([]);
 	
 	# Calculate these each time in case somebody wants to play with
@@ -763,6 +787,11 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
+	sub _serializer
+	{
+		require RDF::Trine::Serializer::NTriples;
+		"RDF::Trine::Serializer::NTriples";
+	}
 }
 
 {
@@ -773,6 +802,13 @@ sub highlight
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
 	                  |  Syntax::Highlight::RDF::MODE_TURTLE;
+	sub _serializer
+	{
+		eval { require RDF::TrineX::Serializer::MockTurtleSoup }
+			and return "RDF::TrineX::Serializer::MockTurtleSoup";
+		require RDF::Trine::Serializer::Turtle;
+		"RDF::Trine::Serializer::Turtle";
+	}
 }
 
 {
@@ -784,6 +820,11 @@ sub highlight
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
 	                  |  Syntax::Highlight::RDF::MODE_TURTLE
 	                  |  Syntax::Highlight::RDF::MODE_NOTATION_3;
+	sub _serializer
+	{
+		require RDF::Trine::Serializer::Notation3;
+		"RDF::Trine::Serializer::Notation3";
+	}
 }
 
 {
@@ -827,6 +868,11 @@ sub highlight
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
+	sub _serializer
+	{
+		require RDF::Trine::Serializer::NQuads;
+		"RDF::Trine::Serializer::NQuads";
+	}
 }
 
 {
@@ -953,7 +999,9 @@ class.
 Highlight some RDF.
 
 C<< $input >> may be a file handle, filename or a scalar ref of text.
-C<< $base >> is an optional base for resolving relative URIs.
+(Most highlighters will also attempt to Do What You Mean if passed something
+else sane like an RDF::Trine::Model.) C<< $base >> is an optional base for
+resolving relative URIs.
 
 Returns a string of HTML.
 

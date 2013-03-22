@@ -97,6 +97,7 @@ use warnings;
 	has _remaining  => (is => 'rw');
 	
 	use IO::Detect qw( as_filehandle );
+	use Scalar::Util qw( blessed );
 		
 	sub _peek
 	{
@@ -128,7 +129,7 @@ use warnings;
 		my $data = (${$self->_remaining} =~ /^(.*?)</ms) ? $1 : ${$self->_remaining};
 		$self->_pull_token($data, $data =~ /\S/ms ? Data : Data_Whitespace);
 	}
-
+	
 	sub _pull_attribute_value
 	{
 		my $self = shift;
@@ -141,20 +142,61 @@ use warnings;
 			remaining => ${$self->_remaining},
 		);
 	}
-
+	
+	sub _serializer
+	{
+		require RDF::Trine::Serializer::RDFXML;
+		return "RDF::Trine::Serializer::RDFXML";
+	}
+	
+	sub _scalarref
+	{
+		my $self = shift;
+		my ($thing) = @_;
+		
+		if (blessed $thing and $thing->isa("RDF::Trine::Model") and $self->can("_serializer"))
+		{
+			my $t = $self->_serializer->new->serialize_model_to_string($thing);
+			$thing = \$t
+		}
+		
+		if (blessed $thing and $thing->isa("RDF::Trine::Iterator") and $thing->can("as_xml"))
+		{
+			my $t = $thing->as_xml;
+			$thing = \$t
+		}
+		
+		if (blessed $thing and $thing->isa("RDF::Trine::Iterator") and $self->can("_serializer"))
+		{
+			my $t = $self->_serializer->new->serialize_iterator_to_string($thing);
+			$thing = \$t
+		}
+		
+		if (blessed $thing and $thing->isa("XML::LibXML::Node"))
+		{
+			my $t = $thing->toString;
+			$thing = \$t
+		}
+		
+		unless (ref $thing eq 'SCALAR')
+		{
+			my $fh = as_filehandle($thing);
+			local $/;
+			my $t = <$fh>;
+			$thing = \$t;
+		}
+		
+		return $thing;
+	}
+	
 	sub tokenize
 	{
 		my $self = shift;
 		ref $self or WrongInvocant->throw("this is an object method!");
 		
-		my ($text_ref) = @_;
-		$self->_remaining(
-			ref($text_ref) eq 'SCALAR'
-				? $text_ref
-				: do { local $/; my $h = as_filehandle($text_ref); \(my $t = <$h>) }
-		);
+		$self->_remaining( $self->_scalarref(@_) );
 		$self->_tokens([]);
-
+		
 		my ($TAG, $ATTR);
 		
 		# Declare this ahead of time for use in the big elsif!
@@ -239,11 +281,12 @@ use warnings;
 	}
 	
 	sub _fixup { 1 };
-
+	
 	sub highlight
 	{
 		my $self = shift;
 		ref $self or WrongInvocant->throw("this is an object method!");
+		
 		$self->tokenize(@_);
 		$self->_fixup;
 		return join "", map $_->TO_HTML, @{$self->_tokens};
