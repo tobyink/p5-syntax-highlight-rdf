@@ -9,7 +9,7 @@ my $hl   = "Syntax::Highlight::RDF"->new;
 
 for my $tok (@{ $hl->tokenize(\$data) })
 {
-	say $tok;
+	print $tok;
 }
 
 __DATA__

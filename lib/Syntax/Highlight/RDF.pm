@@ -53,8 +53,11 @@ use Throwable::Factory
 
 {
 	no strict 'refs';
-	*{Token."::TO_STRING"} = sub {
+	*{Token."::tok"} = sub {
 		sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling
+	};
+	*{Token."::TO_STRING"} = sub {
+		$_[0]->spelling
 	};
 	*{Token."::TO_HTML"}   = sub {
 		require HTML::HTML5::Entities;
@@ -318,7 +321,7 @@ sub tokenize
 	);
 	$self->_tokens([]);
 	$self->_base($base // "http://www.example.net/");
-
+	
 	# Calculate these each time in case somebody wants to play with
 	# our variables!
 	my $_regexify = sub
@@ -332,7 +335,7 @@ sub tokenize
 	my $sparqlAggregate = $_regexify->(@sparqlAggregate);
 	my $sparqlOrdering  = $_regexify->(@sparqlOrdering);
 	my $sparqlOperator  = $_regexify->(@sparqlOperator);
-
+	
 	# Don't need to repeatedly call this method!
 	my $IS_NTRIPLES    = $self->mode & MODE_NTRIPLES;
 	my $IS_TURTLE      = $self->mode & MODE_TURTLE;
