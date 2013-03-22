@@ -158,7 +158,7 @@ use warnings;
 		my $self = shift;
 		ref $self or WrongInvocant->throw("this is an object method!");
 		
-		$self->_remaining( $self->_scalar_ref(@_) );
+		$self->_remaining( $self->_scalarref(@_) );
 		$self->_tokens([]);
 		
 		# Declare this ahead of time for use in the big elsif!
