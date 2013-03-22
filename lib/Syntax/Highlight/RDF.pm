@@ -48,6 +48,17 @@ use MooX::Struct -retain, -rw,
 	Structure_End             => [-extends => [qw<Feature>], q($start) => [weak_ref => 1]],
 	PrefixDefinition_Start    => [-extends => [qw<Structure_Start>], qw($prefix $absolute_uri)],
 	PrefixDefinition_End      => [-extends => [qw<Structure_End>]],
+	Pretdsl                   => [-extends => [qw<Token>]],
+	Pretdsl_Perl_Dist         => [-extends => [qw<Pretdsl>]],
+	Pretdsl_Perl_Release      => [-extends => [qw<Pretdsl>]],
+	Pretdsl_Perl_File         => [-extends => [qw<Pretdsl>]],
+	Pretdsl_Perl_Module       => [-extends => [qw<Pretdsl>]],
+	Pretdsl_Perl_Package      => [-extends => [qw<Pretdsl>]],
+	Pretdsl_RT                => [-extends => [qw<Pretdsl>]],
+	Pretdsl_CPANID            => [-extends => [qw<Pretdsl>]],
+	Pretdsl_Date              => [-extends => [qw<Pretdsl>]],
+	Pretdsl_DateTime          => [-extends => [qw<Pretdsl>]],
+	Pretdsl_Keyword           => [-extends => [qw<Pretdsl>], qw($absolute_uri)],
 ;
 
 use Throwable::Factory
@@ -109,6 +120,11 @@ use Throwable::Factory
 		push @attrs, sprintf 'data-rdf-uri="%s"', encode_entities($_[0]->absolute_uri) if defined $_[0]->absolute_uri;
 		sprintf "<span %s>%s</span>", join(" ", @attrs), encode_entities($_[0]->spelling)
 	};
+	*{Pretdsl_Keyword . "::TO_HTML"} = sub {
+		my @attrs = sprintf 'class="rdf_%s"', lc $_[0]->TYPE;
+		push @attrs, sprintf 'data-rdf-uri="%s"', encode_entities($_[0]->absolute_uri) if defined $_[0]->absolute_uri;
+		sprintf "<span %s>%s</span>", join(" ", @attrs), encode_entities($_[0]->spelling)
+	};
 }
 
 our %STYLE = (
@@ -140,6 +156,16 @@ our %STYLE = (
 	rdf_boolean     => 'color:#cc00cc;font-weight:bold;font-style:italic',
 	rdf_path        => 'color:#000099;background-color:#99ffff;font-weight:bold',
 	rdf_name        => 'color:#000099;background-color:#ffff99;font-weight:bold',
+	rdf_pretdsl_perl_dist       => 'color:white;background:#FF9900;font-weight:bold',
+	rdf_pretdsl_perl_release    => 'color:white;background:#FF6666;font-weight:bold',
+	rdf_pretdsl_perl_file       => 'color:white;background:#00ff66;font-weight:bold',
+	rdf_pretdsl_perl_module     => 'color:white;background:#00ff66;font-weight:bold',
+	rdf_pretdsl_perl_package    => 'color:white;background:#000099;font-weight:bold',
+	rdf_pretdsl_rt              => 'color:white;background:#990000;font-weight:bold',
+	rdf_pretdsl_cpanid          => 'color:white;background:#009900;font-weight:bold',
+	rdf_pretdsl_date            => 'color:#cc00cc;font-style:italic',
+	rdf_pretdsl_datetime        => 'color:#cc00cc;font-style:italic',
+	rdf_pretdsl_keyword         => 'color:#000099;font-weight:bold;font-style:italic',
 );
 
 use Moo;
@@ -304,6 +330,42 @@ our @sparqlOrdering = qw(
 	DESC
 );
 
+our %pretdslKeywords = (
+	label   =>  "http://www.w3.org/2000/01/rdf-schema#label",
+	comment   =>  "http://www.w3.org/2000/01/rdf-schema#comment",
+	seealso   =>  "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+	abstract_from   =>  "http://purl.org/NET/cpan-uri/terms#abstract_from",
+	author_from   =>  "http://purl.org/NET/cpan-uri/terms#author_from",
+	license_from   =>  "http://purl.org/NET/cpan-uri/terms#license_from",
+	requires_from   =>  "http://purl.org/NET/cpan-uri/terms#requires_from",
+	perl_version_from   =>  "http://purl.org/NET/cpan-uri/terms#perl_version_from",
+	version_from   =>  "http://purl.org/NET/cpan-uri/terms#version_from",
+	readme_from   =>  "http://purl.org/NET/cpan-uri/terms#readme_from",
+	no_index   =>  "http://purl.org/NET/cpan-uri/terms#no_index",
+	install_script   =>  "http://purl.org/NET/cpan-uri/terms#install_script",
+	requires   =>  "http://purl.org/NET/cpan-uri/terms#requires",
+	requires_external_bin   =>  "http://purl.org/NET/cpan-uri/terms#requires_external_bin",
+	recommends   =>  "http://purl.org/NET/cpan-uri/terms#recommends",
+	test_requires   =>  "http://purl.org/NET/cpan-uri/terms#test_requires",
+	configure_requires   =>  "http://purl.org/NET/cpan-uri/terms#configure_requires",
+	build_requires   =>  "http://purl.org/NET/cpan-uri/terms#build_requires",
+	provides   =>  "http://purl.org/NET/cpan-uri/terms#provides",
+	issued   =>  "http://purl.org/NET/dc/terms/issued",
+	changeset   =>  "http://ontologi.es/doap-changeset#changeset",
+	item   =>  "http://ontologi.es/doap-changeset#item",
+	versus   =>  "http://ontologi.es/doap-changeset#versus",
+	Addition   =>  "http://ontologi.es/pretdsl#dt/Addition",
+	Bugfix   =>  "http://ontologi.es/pretdsl#dt/Bugfix",
+	Change   =>  "http://ontologi.es/pretdsl#dt/Change",
+	Documentation   =>  "http://ontologi.es/pretdsl#dt/Documentation",
+	Packaging   =>  "http://ontologi.es/pretdsl#dt/Packaging",
+	Regresion   =>  "http://ontologi.es/pretdsl#dt/Regression",
+	Removal   =>  "http://ontologi.es/pretdsl#dt/Removal",
+	SecurityFix   =>  "http://ontologi.es/pretdsl#dt/SecurityFix",
+	SecurityRegression   =>  "http://ontologi.es/pretdsl#dt/SecurityRegression",
+	Update   =>  "http://ontologi.es/pretdsl#dt/Update",
+);
+
 sub _peek
 {
 	my $self = shift;
@@ -362,6 +424,26 @@ sub _pull_curie
 	my $self = shift;
 	$self->_pull_token($1, CURIE)
 		if ${$self->_remaining} =~ m/^(([$nameStartChar2][$nameChar]*)?:([$nameStartChar2][$nameChar]*)?)/;
+}
+
+# Same rules as RDF::TrineX::Parser::Pretdsl
+sub _pull_pretdsl
+{
+	my $self = shift;
+	my ($spelling) = @_;
+	
+	$spelling =~ /^d/ and return $self->_pull_token($spelling, Pretdsl_Perl_Dist);
+	$spelling =~ /^r/ and return $self->_pull_token($spelling, Pretdsl_Perl_Release);
+	$spelling =~ /^m/ and return $self->_pull_token($spelling, Pretdsl_Perl_Module);
+	$spelling =~ /^f/ and return $self->_pull_token($spelling, Pretdsl_Perl_File);
+	$spelling =~ /^p/ and return $self->_pull_token($spelling, Pretdsl_Perl_Package);
+	
+	my ($x, $v) = split /\s+/, substr($spelling, 1, length($spelling)-2);
+	$spelling =~ m{::} and return $self->_pull_token($spelling, Pretdsl_Perl_Module);
+	$spelling =~ m{/}  and return $self->_pull_token($spelling, Pretdsl_Perl_File);
+	length($v)         and return $self->_pull_token($spelling, Pretdsl_Perl_Release);
+	
+	return $self->_pull_token($spelling, Pretdsl_Perl_Dist);
 }
 
 # XXX - this is probably too naive
@@ -431,6 +513,7 @@ sub tokenize
 	my $sparqlAggregate = $_regexify->(@sparqlAggregate);
 	my $sparqlOrdering  = $_regexify->(@sparqlOrdering);
 	my $sparqlOperator  = $_regexify->(@sparqlOperator);
+	my $pretdslKeyword  = $_regexify->(sort { length $a <=> length $b } keys %pretdslKeywords);
 	
 	# Don't need to repeatedly call this method!
 	my $IS_NTRIPLES    = ($self->mode & MODE_NTRIPLES);
@@ -506,6 +589,30 @@ sub tokenize
 		elsif ($matches = $self->_peek(qr/^(#.*)(\r|\n|$)/ims))
 		{
 			$self->_pull_token($matches->[0], Comment);
+		}
+		elsif ($IS_PRETDSL and $matches = $self->_peek(qr{^(RT#[0-9]+)}i))
+		{
+			$self->_pull_token($matches->[0], Pretdsl_RT);
+		}
+		elsif ($IS_PRETDSL and $matches = $self->_peek(qr{^(cpan:\w+)}i))
+		{
+			$self->_pull_token($matches->[0], Pretdsl_CPANID);
+		}
+		elsif ($IS_PRETDSL and $matches = $self->_peek(qr{^([drfmp]?`.*?`)}i))
+		{
+			$self->_pull_pretdsl($matches->[0]);
+		}
+		elsif ($IS_PRETDSL and $matches = $self->_peek(qr{^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{4}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?)}i))
+		{
+			$self->_pull_token($matches->[0], Pretdsl_DateTime);
+		}
+		elsif ($IS_PRETDSL and $matches = $self->_peek(qr{^([0-9]{4}-[0-9]{2}-[0-9]{2})}i))
+		{
+			$self->_pull_token($matches->[0], Pretdsl_Date);
+		}
+		elsif ($IS_PRETDSL and $matches = $self->_peek($pretdslKeyword))
+		{
+			$self->_pull_token($matches->[0], Pretdsl_Keyword, absolute_uri => $pretdslKeywords{$matches->[0]});
 		}
 		elsif ($self->_peek('_:'))
 		{
@@ -591,7 +698,7 @@ sub tokenize
 		{
 			$self->_pull_token($matches->[0], Boolean);
 		}
-		elsif ($ABOVE_NTRIPLES and $self->_peek('a'))
+		elsif ($ABOVE_NTRIPLES and $self->_peek(qr{^(a)\b}))
 		{
 			$self->_pull_token('a', Shorthand);
 		}
@@ -603,7 +710,7 @@ sub tokenize
 		{
 			$self->_pull_token("=", Shorthand);
 		}
-		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^(is|of)/i))
+		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^(is|of)\b/i))
 		{
 			$self->_pull_token($matches->[0], IsOf);
 		}
@@ -747,11 +854,54 @@ sub _fixup_prefix_declarations
 	}
 }
 
+our %pretdslPrefixes = (
+	"grddl" =>   "http://www.w3.org/2003/g/data-view#",
+	"ma" =>      "http://www.w3.org/ns/ma-ont#",
+	"owl" =>     "http://www.w3.org/2002/07/owl#",
+	"rdf" =>     "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+	"rdfa" =>    "http://www.w3.org/ns/rdfa#",
+	"rdfs" =>    "http://www.w3.org/2000/01/rdf-schema#",
+	"rif" =>     "http://www.w3.org/2007/rif#",
+	"skos" =>    "http://www.w3.org/2004/02/skos/core#",
+	"skosxl" =>  "http://www.w3.org/2008/05/skos-xl#",
+	"wdr" =>     "http://www.w3.org/2007/05/powder#",
+	"void" =>    "http://rdfs.org/ns/void#",
+	"wdrs" =>    "http://www.w3.org/2007/05/powder-s#",
+	"xhv" =>     "http://www.w3.org/1999/xhtml/vocab#",
+	"xml" =>     "http://www.w3.org/XML/1998/namespace",
+	"xsd" =>     "http://www.w3.org/2001/XMLSchema#",
+	"cc" =>      "http://creativecommons.org/ns#",
+	"ctag" =>    "http://commontag.org/ns#",
+	"dc" =>      "http://purl.org/dc/terms/",
+	"dcterms" => "http://purl.org/dc/terms/",
+	"foaf" =>    "http://xmlns.com/foaf/0.1/",
+	"gr" =>      "http://purl.org/goodrelations/v1#",
+	"ical" =>    "http://www.w3.org/2002/12/cal/icaltzd#",
+	"og" =>      "http://ogp.me/ns#",
+	"rev" =>     "http://purl.org/stuff/rev#",
+	"sioc" =>    "http://rdfs.org/sioc/ns#",
+	"v" =>       "http://rdf.data-vocabulary.org/#",
+	"vcard" =>   "http://www.w3.org/2006/vcard/ns#",
+	"schema" =>  "http://schema.org/",
+	"cpant" =>   "http://purl.org/NET/cpan-uri/terms#",
+	"dbug" =>    "http://ontologi.es/doap-bugs#",
+	"dcs" =>     "http://ontologi.es/doap-changeset#",
+	"doap" =>    "http://usefulinc.com/ns/doap#",
+	"earl" =>    "http://www.w3.org/ns/earl#",
+	"nfo" =>     "http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#",
+	"pretdsl" => "http://ontologi.es/pretdsl#",
+	"pretdsl-dt" => "http://ontologi.es/pretdsl#dt/",
+);
+
 sub _fixup_curies
 {
 	my $self = shift;
 	
-	my $map    = {};
+	my $map = +{
+		$self->mode & MODE_PRETDSL
+			? %pretdslPrefixes
+			: ()
+	};
 	my $tokens = $self->_tokens;
 	
 	for my $t (@$tokens)
@@ -963,6 +1113,10 @@ TriG
 =item *
 
 Notation 3
+
+=item *
+
+Pretdsl
 
 =item *
 
