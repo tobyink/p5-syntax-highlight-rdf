@@ -807,8 +807,8 @@ sub highlighter
 	};
 	
 	$hint =~ m{json}i and do {
-		require Syntax::Highlight::JSON;
-		return "Syntax::Highlight::JSON"->new;
+		require Syntax::Highlight::JSON2;
+		return "Syntax::Highlight::JSON2"->new;
 	};
 	
 	$hint =~ m{(ttl|turtle)}i       and return "$class\::Turtle"->new;
@@ -874,11 +874,11 @@ Notation 3
 
 =item *
 
-SPARQL Query 1.1
+SPARQL Query 1.1 (but not property paths yet)
 
 =item *
 
-SPARQL Update 1.1
+SPARQL Update 1.1 (but not property paths yet)
 
 =item *
 

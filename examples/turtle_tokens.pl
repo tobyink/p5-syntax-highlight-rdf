@@ -5,7 +5,7 @@ use warnings;
 use Syntax::Highlight::RDF;
 
 my $data = do { local $/ = <DATA> };
-my $hl   = "Syntax::Highlight::RDF"->new;
+my $hl   = "Syntax::Highlight::RDF"->highlighter("Turtle");
 
 $hl->tokenize(\$data);
 $hl->_fixup("http://www.example.net/");

@@ -4,9 +4,9 @@ use warnings;
 
 use Syntax::Highlight::RDF;
 
-my $hl = "Syntax::Highlight::RDF"->new;
+my $hl   = "Syntax::Highlight::RDF"->highlighter("Turtle");
 
-print $hl->highlightText(\*DATA, "http://www.example.net/");
+print $hl->highlight(\*DATA, "http://www.example.net/");
 
 __DATA__
 @base <http://www.example.org/> .
