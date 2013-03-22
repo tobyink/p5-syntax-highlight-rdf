@@ -6,15 +6,21 @@ use Syntax::Highlight::RDF;
 
 my $hl = "Syntax::Highlight::RDF"->new;
 
-for my $tok (@{ $hl->tokenize(\*DATA) })
+$hl->tokenize(\*DATA);
+$hl->_fixup("http://www.example.net/");
+
+for my $tok (@{$hl->_tokens})
 {
 	print $tok->TO_HTML;
 }
 
 __DATA__
-@prefix foo: <http://example.com/foo> .
+@base <http://www.example.org/> .
+@prefix foo: <http://example.com/foo#> .
+@prefix quux: <quux#>.
 
 <xyz>
    foo:bar 123;
-   foo:baz "Yeah\"Baby\"Yeah".
+   foo:baz "Yeah\"Baby\"Yeah";
+   foo:bum quux:quuux.
 

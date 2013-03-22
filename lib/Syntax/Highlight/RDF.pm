@@ -9,8 +9,9 @@ BEGIN {
 	$Syntax::Highlight::RDF::VERSION   = '0.001';
 }
 
-use MooX::Struct -retain,
-	Token                     => [qw($spelling)],
+use MooX::Struct -retain, -rw,
+	Feature                   => [],
+	Token                     => [-extends => [qw<Feature>], qw($spelling!)],
 	Comment                   => [-extends => [qw<Token>]],
 	Brace                     => [-extends => [qw<Token>]],
 	Bracket                   => [-extends => [qw<Token>]],
@@ -38,11 +39,15 @@ use MooX::Struct -retain,
 	Unknown                   => [-extends => [qw<Token>]],
 	Whitespace                => [-extends => [qw<Token>]],
 	Name                      => [-extends => [qw<Token>]],
-	URIRef                    => [-extends => [qw<Token>], qw($uri $absolute_uri)],
+	URIRef                    => [-extends => [qw<Token>], qw($absolute_uri)],
 	CURIE                     => [-extends => [qw<Token>], qw($absolute_uri)],
 	String                    => [-extends => [qw<Token>], qw($quote_char $parts $language)],
 	LongString                => [-extends => [qw<String>]],
 	ShortString               => [-extends => [qw<String>]],
+	Structure_Start           => [-extends => [qw<Feature>], qw($end)],
+	Structure_End             => [-extends => [qw<Feature>], q($start) => [weak_ref => 1]],
+	PrefixDefinition_Start    => [-extends => [qw<Structure_Start>], qw($prefix $absolute_uri)],
+	PrefixDefinition_End      => [-extends => [qw<Structure_End>]],
 ;
 
 use Throwable::Factory
@@ -52,19 +57,57 @@ use Throwable::Factory
 ;
 
 {
+	use HTML::HTML5::Entities qw/encode_entities/;
+	
 	no strict 'refs';
-	*{Token."::tok"} = sub {
-		sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling
+	*{Feature    . "::tok"}        = sub { sprintf "%s~", $_[0]->TYPE };
+	*{Token      . "::tok"}        = sub { sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling };
+	*{Whitespace . "::tok"}        = sub { $_[0]->TYPE };
+	*{Feature    . "::TO_STRING"}  = sub { "" };
+	*{Token      . "::TO_STRING"}  = sub { $_[0]->spelling };
+	*{Token      . "::TO_HTML"}    = sub {
+		sprintf "<span class=\"rdf_%s\">%s</span>", lc $_[0]->TYPE, encode_entities($_[0]->spelling)
 	};
-	*{Token."::TO_STRING"} = sub {
-		$_[0]->spelling
+	*{Whitespace . "::TO_HTML"}  = sub { $_[0]->spelling };
+	*{URIRef     . "::uri"}      = sub { my $u = $_[0]->spelling; substr $u, 1, length($u)-2 };  # XXX - unescape
+	*{CURIE      . "::prefix"}   = sub { (split ":", $_[0]->spelling)[0] };
+	*{CURIE      . "::suffix"}   = sub { (split ":", $_[0]->spelling)[1] };
+	*{PrefixDefinition_Start . "::tok"} = sub {
+		sprintf '%s{prefix:"%s",uri:"%s"}', $_[0]->TYPE, $_[0]->prefix, $_[0]->absolute_uri;
 	};
-	*{Token."::TO_HTML"}   = sub {
-		require HTML::HTML5::Entities;
-		sprintf "<span class=\"rdf_%s\">%s</span>", lc $_[0]->TYPE, HTML::HTML5::Entities::encode_entities($_[0]->spelling)
+	*{PrefixDefinition_End . "::tok"} = sub {
+		sprintf '%s{prefix:"%s",uri:"%s"}', $_[0]->TYPE, $_[0]->start->prefix, $_[0]->start->absolute_uri;
 	};
-	*{Whitespace."::TO_HTML"}   = sub {
-		$_[0]->spelling;
+	*{CURIE      . "::tok"} = sub {
+		sprintf '%s[%s]{uri:"%s"}', $_[0]->TYPE, $_[0]->spelling, $_[0]->absolute_uri//"???";
+	};
+	*{URIRef     . "::tok"} = sub {
+		sprintf '%s[%s]{uri:"%s"}', $_[0]->TYPE, $_[0]->spelling, $_[0]->absolute_uri//"???";
+	};
+	*{Structure_Start . "::TO_HTML"} = sub {
+		my @attrs = sprintf 'class="rdf_%s"', lc $_[0]->TYPE;
+		sprintf "<span %s>", join " ", @attrs;
+	};
+	*{Structure_End . "::TO_HTML"} = sub {
+		"</span>"
+	};
+	*{PrefixDefinition_Start . "::TO_HTML"} = sub {
+		my @attrs = sprintf 'class="rdf_%s"', lc $_[0]->TYPE;
+		push @attrs, sprintf 'data-rdf-prefix="%s"', encode_entities($_[0]->prefix) if defined $_[0]->prefix;
+		push @attrs, sprintf 'data-rdf-uri="%s"', encode_entities($_[0]->absolute_uri) if defined $_[0]->absolute_uri;
+		sprintf "<span %s>", join " ", @attrs;
+	};
+	*{CURIE . "::TO_HTML"} = sub {
+		my @attrs = sprintf 'class="rdf_%s"', lc $_[0]->TYPE;
+		push @attrs, sprintf 'data-rdf-prefix="%s"', encode_entities($_[0]->prefix) if defined $_[0]->prefix;
+		push @attrs, sprintf 'data-rdf-suffix="%s"', encode_entities($_[0]->suffix) if defined $_[0]->suffix;
+		push @attrs, sprintf 'data-rdf-uri="%s"', encode_entities($_[0]->absolute_uri) if defined $_[0]->absolute_uri;
+		sprintf "<span %s>%s</span>", join(" ", @attrs), encode_entities($_[0]->spelling)
+	};
+	*{URIRef . "::TO_HTML"} = sub {
+		my @attrs = sprintf 'class="rdf_%s"', lc $_[0]->TYPE;
+		push @attrs, sprintf 'data-rdf-uri="%s"', encode_entities($_[0]->absolute_uri) if defined $_[0]->absolute_uri;
+		sprintf "<span %s>%s</span>", join(" ", @attrs), encode_entities($_[0]->spelling)
 	};
 }
 
@@ -77,12 +120,10 @@ use constant {
 	MODE_TURTLE         => 1,
 	MODE_NOTATION_3     => 2,
 	MODE_SPARQL         => 4,
-	MODE_SHORTHAND_RDF  => 8,
-	MODE_PRETDSL        => 16,
+	MODE_PRETDSL        => 8,
 };
 
-my $default_mode = MODE_NTRIPLES | MODE_TURTLE | MODE_NOTATION_3
-	| MODE_SPARQL | MODE_SHORTHAND_RDF | MODE_PRETDSL;
+my $default_mode = MODE_NTRIPLES | MODE_TURTLE | MODE_NOTATION_3 | MODE_SPARQL | MODE_PRETDSL;
 
 has _remaining => (is => "rw");
 has _tokens    => (is => "rw");
@@ -313,14 +354,13 @@ sub _pull_longstring
 sub tokenize
 {
 	my $self = shift;
-	my ($text_ref, $base) = @_;
+	my ($text_ref) = @_;
 	$self->_remaining(
 		ref($text_ref) eq 'SCALAR'
 			? $text_ref
 			: do { local $/; my $h = as_filehandle($text_ref); \(my $t = <$h>) }
 	);
 	$self->_tokens([]);
-	$self->_base($base // "http://www.example.net/");
 	
 	# Calculate these each time in case somebody wants to play with
 	# our variables!
@@ -341,7 +381,8 @@ sub tokenize
 	my $IS_TURTLE      = $self->mode & MODE_TURTLE;
 	my $IS_NOTATION_3  = $self->mode & MODE_NOTATION_3;
 	my $IS_SPARQL      = $self->mode & MODE_SPARQL;
-	my $ABOVE_NTRIPLES = $IS_TURTLE || $IS_NOTATION_3 || $IS_SPARQL;
+	my $IS_PRETDSL     = $self->mode & MODE_PRETDSL;
+	my $ABOVE_NTRIPLES = $IS_TURTLE || $IS_NOTATION_3 || $IS_SPARQL || $IS_PRETDSL;
 	
 	# Declare this ahead of time for use in the big elsif!
 	my $matches;
@@ -526,6 +567,142 @@ sub tokenize
 	}
 	
 	return $self->_tokens;
+}
+
+sub _fixup
+{
+	my $self = shift;
+	my ($base) = @_;
+	$self->_fixup_urirefs($base);
+	$self->_fixup_prefix_declarations;
+	$self->_fixup_curies;
+}
+
+sub _resolve_uri
+{
+	shift;
+	my ($relative, $base) = @_;
+	return $relative unless length $base;
+	
+	# XXX - cope with situation where $base exists but is relative
+	
+	require URI;
+	"URI"->new_abs(@_)->as_string;
+}
+
+sub _fixup_urirefs
+{
+	my $self = shift;
+	my ($base) = @_;
+	$base //= "";
+	
+	my $tokens = $self->_tokens;
+	my $i = 0;
+	while ($i < @$tokens)
+	{
+		my $t = $tokens->[$i];
+		
+		if ($t->isa(URIRef) and not defined $t->absolute_uri)
+		{
+			$t->absolute_uri($self->_resolve_uri($t->uri, $base));
+		}
+		elsif ( ($t->isa(Sparql_Keyword) and lc($t->spelling) eq 'base')
+		or      ($t->isa(AtRule) and lc($t->spelling) eq '@base') )
+		{
+			# search ahead for the new base URI
+			my $j = 1;
+			while ($tokens->[$i+$j]->isa(Comment) || $tokens->[$i+$j]->isa(Whitespace))
+			{
+				$j++;
+				last if !defined $tokens->[$i+$j];
+			}
+			if (defined $tokens->[$i+$j] and $tokens->[$i+$j]->can("uri"))
+			{
+				# new base URI found!
+				$base = $self->_resolve_uri($tokens->[$i+$j]->uri, $base);
+				$i += ($j - 1);
+			}
+		}
+		
+		$i++;
+	}
+}
+
+sub _fixup_prefix_declarations
+{
+	my $self = shift;
+	
+	my $tokens = $self->_tokens;	
+	my $i = 0;
+	my $started;
+	my @bits;
+	while ($i < @$tokens)
+	{
+		my $t = $tokens->[$i];
+		my $is_end;
+		
+		if ($t->isa(AtRule) and lc($t->spelling) eq '@prefix')
+		{
+			$started = $i;
+			@bits    = $t;
+		}
+		elsif ($t->isa(Sparql_Keyword) and lc($t->spelling) eq 'PREFIX')
+		{
+			$started = $i;
+			@bits    = $t;
+		}
+		elsif (defined $started and $t->isa(CURIE) || $t->isa(URIRef))
+		{
+			push @bits, $t;
+		}
+		elsif (defined $started and @bits==3 and $t->spelling eq "." and $bits[0]->isa(AtRule))
+		{
+			$is_end = 1;
+		}
+		
+		if (!$is_end and defined $started and @bits==3 and $bits[0]->isa(Sparql_Keyword))
+		{
+			$is_end = 1;
+		}
+		
+		if ($is_end)
+		{
+			my $END   = PrefixDefinition_End->new;
+			my $START = PrefixDefinition_Start->new(
+				prefix       => $bits[1]->prefix,
+				absolute_uri => $bits[2]->absolute_uri,
+				end          => $END
+			);
+			$END->start($START);
+			
+			$bits[1]->absolute_uri($bits[2]->absolute_uri);
+			
+			splice(@$tokens, $started, 0, $START); $i++;
+			splice(@$tokens, $i+1,     0, $END); $i++;
+		}
+		
+		$i++;
+	}
+}
+
+sub _fixup_curies
+{
+	my $self = shift;
+	
+	my $map    = {};
+	my $tokens = $self->_tokens;
+	
+	for my $t (@$tokens)
+	{
+		if ($t->isa(PrefixDefinition_End))
+		{
+			$map->{ $t->start->prefix } = $t->start->absolute_uri;
+		}
+		elsif ($t->isa(CURIE) and defined $t->prefix and exists $map->{$t->prefix})
+		{
+			$t->absolute_uri($map->{$t->prefix} . ($t->suffix//""));
+		}
+	}
 }
 
 1;
