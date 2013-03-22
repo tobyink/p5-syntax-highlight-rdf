@@ -11,9 +11,6 @@ BEGIN {
 
 use MooX::Struct -retain,
 	Token                     => [qw($spelling)],
-	PrefixDefinition          => [-extends => [qw<Token>], qw($expansion)],
-	PrefixDefinition_Start    => [-extends => [qw<PrefixDefinition>]],
-	PrefixDefinition_End      => [-extends => [qw<PrefixDefinition>]],
 	Comment                   => [-extends => [qw<Token>]],
 	Brace                     => [-extends => [qw<Token>]],
 	Bracket                   => [-extends => [qw<Token>]],
@@ -30,9 +27,12 @@ use MooX::Struct -retain,
 	Punctuation               => [-extends => [qw<Token>]],
 	Path                      => [-extends => [qw<Token>]],
 	Boolean                   => [-extends => [qw<Token>]],
-	SparqlWord                => [-extends => [qw<Token>]],
-	SparqlOrdering            => [-extends => [qw<Token>]],
-	SparqlOperator            => [-extends => [qw<Token>]],
+	Sparql                    => [-extends => [qw<Token>]],
+	Sparql_Keyword            => [-extends => [qw<Sparql>]],
+	Sparql_Operator           => [-extends => [qw<Sparql>]],
+	Sparql_Function           => [-extends => [qw<Sparql>]],
+	Sparql_Aggregate          => [-extends => [qw<Sparql_Function>]],
+	Sparql_Ordering           => [-extends => [qw<Sparql_Function>]],
 	IsOf                      => [-extends => [qw<Token>]],
 	Language                  => [-extends => [qw<Token>]],
 	Unknown                   => [-extends => [qw<Token>]],
@@ -48,6 +48,7 @@ use MooX::Struct -retain,
 use Throwable::Factory
 	Tokenization              => [qw( $remaining -caller )],
 	NotImplemented            => [qw( -notimplemented )],
+	WTF                       => [],
 ;
 
 {
@@ -72,15 +73,13 @@ use constant {
 	MODE_NTRIPLES       => 0,
 	MODE_TURTLE         => 1,
 	MODE_NOTATION_3     => 2,
-	MODE_SPARQL_QUERY   => 4,
-	MODE_SPARQL_UPDATE  => 8,
-	MODE_SHORTHAND_RDF  => 16,
-	MODE_PRETDSL        => 32,
+	MODE_SPARQL         => 4,
+	MODE_SHORTHAND_RDF  => 8,
+	MODE_PRETDSL        => 16,
 };
 
 my $default_mode = MODE_NTRIPLES | MODE_TURTLE | MODE_NOTATION_3
-	| MODE_SPARQL_QUERY | MODE_SPARQL_UPDATE | MODE_SHORTHAND_RDF
-	| MODE_PRETDSL;
+	| MODE_SPARQL | MODE_SHORTHAND_RDF | MODE_PRETDSL;
 
 has _remaining => (is => "rw");
 has _tokens    => (is => "rw");
@@ -91,6 +90,144 @@ has mode       => (is => "ro", default => sub { $default_mode });
 my $nameStartChar  = qr{A-Za-z_\x{00C0}-\x{00D6}\x{00D8}-\x{00F6}\x{00F8}-\x{02FF}\x{0370}-\x{037D}\x{037F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}};
 my $nameStartChar2 = qr{A-Za-yz\x{00C0}-\x{00D6}\x{00D8}-\x{00F6}\x{00F8}-\x{02FF}\x{0370}-\x{037D}\x{037F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}};
 my $nameChar       = qr{A-Za-z_\x{00C0}-\x{00D6}\x{00D8}-\x{00F6}\x{00F8}-\x{037D}\x{037F}-\x{1FFF}\x{200C}-\x{200D}\x{2070}-\x{218F}\x{2C00}-\x{2FEF}\x{3001}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFFD}\x{10000}-\x{EFFFF}\x{00B7}\x{203F}\x{2040}0-9-};
+
+our @sparqlQueryWord = qw(
+	BASE
+	PREFIX
+	SELECT
+	DISTINCT
+	REDUCED
+	AS
+	CONSTRUCT
+	WHERE
+	DESCRIBE
+	ASK
+	FROM
+	NAMED
+	GROUP__BY
+	HAVING
+	ORDER__BY
+	LIMIT
+	OFFSET
+	VALUES
+	DEFAULT
+	ALL
+	OPTIONAL
+	SERVICE
+	BIND
+	UNDEF
+	MINUS
+	FILTER
+);
+
+our @sparqlUpdateWord = qw(
+	LOAD
+	SILENT
+	INTO
+	CLEAR
+	DROP
+	CREATE
+	ADD
+	MOVE
+	COPY
+	INSERT__DATA
+	DELETE__DATA
+	DELETE__WHERE
+	DELETE
+	INSERT
+	USING
+);
+
+our @sparqlOperator = qw(
+	||
+	&&
+	=
+	!=
+	<
+	>
+	<=
+	>=
+	NOT__IN
+	NOT
+	IN
+	+
+	-
+	*
+	/
+	!
+);
+
+our @sparqlFunction = qw(
+	STR
+	LANG
+	LANGMATCHES
+	DATATYPE
+	BOUND
+	IRI
+	URI
+	BNODE
+	RAND
+	ABS
+	CEIL
+	FLOOR
+	ROUND
+	CONCAT
+	STRLEN
+	UCASE
+	LCASE
+	ENCODE_FOR_URI
+	CONTAINS
+	STRSTARTS
+	STRENDS
+	STRBEFORE
+	STRAFTER
+	YEAR
+	MONTH
+	DAY
+	HOURS
+	MINUTES
+	SECONDS
+	TIMEZONE
+	TZ
+	NOW
+	UUID
+	STRUUID
+	MD5
+	SHA1
+	SHA256
+	SHA384
+	SHA512
+	COALESCE
+	IF
+	STRLANG
+	STRDT
+	sameTerm
+	isIRI
+	isURI
+	isBLANK
+	isLITERAL
+	isNUMERIC
+	REGEX
+	SUBSTR
+	REPLACE
+	NOT__EXISTS
+	EXISTS
+);
+
+our @sparqlAggregate = qw(
+	COUNT
+	SUM
+	MIN
+	MAX
+	AVG
+	SAMPLE
+	GROUP_CONCAT
+);
+
+our @sparqlOrdering = qw(
+	ASC
+	DESC
+);
 
 sub _peek
 {
@@ -110,6 +247,7 @@ sub _pull_token
 {
 	my $self = shift;
 	my ($spelling, $class, %more) = @_;
+	defined $spelling or WTF->throw("Tried to pull undef token!");
 	substr(${$self->_remaining}, 0, length $spelling, "");
 	push @{$self->_tokens}, $class->new(spelling => $spelling, %more);
 }
@@ -132,7 +270,7 @@ sub _pull_variable
 
 sub _pull_whitespace
 {
-	my $self = shift;	
+	my $self = shift;
 	$self->_pull_token($1, Whitespace)
 		if ${$self->_remaining} =~ m/^(\s*)/sm;
 }
@@ -151,6 +289,7 @@ sub _pull_curie
 		if ${$self->_remaining} =~ m/^(([$nameStartChar2][$nameChar]*)?:([$nameStartChar2][$nameChar]*)?)/;
 }
 
+# XXX - this is probably too naive
 sub _pull_shortstring
 {
 	my $self = shift;	
@@ -159,6 +298,7 @@ sub _pull_shortstring
 		if ${$self->_remaining} =~ m/^($quote_char(?:\\\\|\\.|[^$quote_char])*?$quote_char)/;
 }
 
+# XXX - this is probably too naive
 sub _pull_longstring
 {
 	my $self = shift;	
@@ -178,40 +318,58 @@ sub tokenize
 	);
 	$self->_tokens([]);
 	$self->_base($base // "http://www.example.net/");
-	
+
+	# Calculate these each time in case somebody wants to play with
+	# our variables!
+	my $_regexify = sub
+	{
+		my @in     = @_;
+		my $joined = join "|", map { s/__/\\s+/g; $_ } map quotemeta, @in;
+		qr{^($joined)}i;
+	};
+	my $sparqlKeyword   = $_regexify->(@sparqlQueryWord, @sparqlUpdateWord);
+	my $sparqlFunction  = $_regexify->(@sparqlFunction);
+	my $sparqlAggregate = $_regexify->(@sparqlAggregate);
+	my $sparqlOrdering  = $_regexify->(@sparqlOrdering);
+	my $sparqlOperator  = $_regexify->(@sparqlOperator);
+
 	# Don't need to repeatedly call this method!
-	my $mode = $self->mode;
+	my $IS_NTRIPLES    = $self->mode & MODE_NTRIPLES;
+	my $IS_TURTLE      = $self->mode & MODE_TURTLE;
+	my $IS_NOTATION_3  = $self->mode & MODE_NOTATION_3;
+	my $IS_SPARQL      = $self->mode & MODE_SPARQL;
+	my $ABOVE_NTRIPLES = $IS_TURTLE || $IS_NOTATION_3 || $IS_SPARQL;
+	
+	# Declare this ahead of time for use in the big elsif!
 	my $matches;
 	
 	while (length ${ $self->_remaining })
 	{
-		no warnings 'redefine';
-		
 		if ($self->_peek(' ') || $self->_peek("\n") || $self->_peek("\r") || $self->_peek("\t"))
 		{
 			$self->_pull_whitespace;
 		}
-		elsif ($self->_peek('{') && ($mode & MODE_NOTATION_3))
+		elsif ($IS_NOTATION_3||$IS_SPARQL and $self->_peek('{'))
 		{
 			$self->_pull_token('{', Brace);
 		}
-		elsif ($self->_peek('}') && ($mode & MODE_NOTATION_3))
+		elsif ($IS_NOTATION_3||$IS_SPARQL and $self->_peek('}'))
 		{
 			$self->_pull_token('}', Brace);
 		}
-		elsif ($self->_peek('[') && ($mode & MODE_TURTLE))
+		elsif ($ABOVE_NTRIPLES and $self->_peek('['))
 		{
 			$self->_pull_token('[', Bracket);
 		}
-		elsif ($self->_peek(']') && ($mode & MODE_TURTLE))
+		elsif ($ABOVE_NTRIPLES and $self->_peek(']'))
 		{
 			$self->_pull_token(']', Bracket);
 		}
-		elsif ($self->_peek('(') && ($mode & MODE_TURTLE))
+		elsif ($ABOVE_NTRIPLES and $self->_peek('('))
 		{
 			$self->_pull_token('(', Parenthesis);
 		}
-		elsif ($self->_peek(')') && ($mode & MODE_TURTLE))
+		elsif ($ABOVE_NTRIPLES and $self->_peek(')'))
 		{
 			$self->_pull_token(')', Parenthesis);
 		}
@@ -219,45 +377,25 @@ sub tokenize
 		{
 			$self->_pull_token('^^', Datatype);
 		}
-		elsif ($self->_peek('^') && ($mode & MODE_NOTATION_3))
+		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^([\!\^])/))
 		{
-			$self->_pull_token('^', Path);
+			$self->_pull_token($matches->[0], Path);
 		}
-		elsif ($self->_peek('!') && ($mode & MODE_NOTATION_3))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([\,\;])/))
 		{
-			$self->_pull_token('!', Path);
-		}
-		elsif ($self->_peek(','))
-		{
-			$self->_pull_token(',', Punctuation);
-		}
-		elsif ($self->_peek(';'))
-		{
-			$self->_pull_token(';', Punctuation);
+			$self->_pull_token($matches->[0], Punctuation);
 		}
 		elsif ($self->_peek('.'))
 		{
 			$self->_pull_token('.', Punctuation);
 		}
-		elsif ($self->_peek('@prefix') && ($mode & MODE_TURTLE))
+		elsif ($IS_NOTATION_3||$IS_TURTLE and $matches = $self->_peek(qr/^(\@(?:prefix|base))/))
 		{
-			$self->_pull_token('@prefix', AtRule);
+			$self->_pull_token($matches->[0], AtRule);
 		}
-		elsif ($self->_peek('@base') && ($mode & MODE_TURTLE))
+		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^(\@(?:keywords|forSome|forAll))/))
 		{
-			$self->_pull_token('@base', AtRule);
-		}
-		elsif ($self->_peek('@keywords') && ($mode & MODE_NOTATION_3))
-		{
-			$self->_pull_token('@keywords', AtRule);
-		}
-		elsif ($self->_peek('@forAll') && ($mode & MODE_NOTATION_3))
-		{
-			$self->_pull_token('@forAll', AtRule);
-		}
-		elsif ($self->_peek('@forSome') && ($mode & MODE_NOTATION_3))
-		{
-			$self->_pull_token('@forSome', AtRule);
+			$self->_pull_token($matches->[0], AtRule);
 		}
 		elsif ($matches = $self->_peek(qr/^(\@[a-z0-9-]+)/i))
 		{
@@ -271,31 +409,31 @@ sub tokenize
 		{
 			$self->_pull_bnode;
 		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([$nameStartChar2][$nameChar]*)?:([$nameStartChar2][$nameChar]*)?/))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([$nameStartChar2][$nameChar]*)?:([$nameStartChar2][$nameChar]*)?/))
 		{
 			$self->_pull_curie;
 		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([\-\+]?([0-9]+\.[0-9]*e[\-\+]?[0-9]+))/i))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([\-\+]?([0-9]+\.[0-9]*e[\-\+]?[0-9]+))/i))
 		{
 			$self->_pull_token($matches->[0], Number_Double);
 		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([\-\+]?(\.[0-9]+e[\-\+]?[0-9]+))/i))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([\-\+]?(\.[0-9]+e[\-\+]?[0-9]+))/i))
 		{
 			$self->_pull_token($matches->[0], Number_Double);
 		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([\-\+]?([0-9]+e[\-\+]?[0-9]+))/i))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([\-\+]?([0-9]+e[\-\+]?[0-9]+))/i))
 		{
 			$self->_pull_token($matches->[0], Number_Double);
 		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([\-\+]?([0-9]+\.[0-9]*))/))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([\-\+]?([0-9]+\.[0-9]*))/))
 		{
 			$self->_pull_token($matches->[0], Number_Decimal);
 		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([\-\+]?(\.[0-9]+))/))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([\-\+]?(\.[0-9]+))/))
 		{
 			$self->_pull_token($matches->[0], Number_Decimal);
 		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([\-\+]?([0-9]+))/))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([\-\+]?([0-9]+))/))
 		{
 			$self->_pull_token($matches->[0], Number_Integer);
 		}
@@ -303,75 +441,75 @@ sub tokenize
 		{
 			$self->_pull_uri;
 		}
-		elsif (($self->_peek('?') || $self->_peek('$')) && ($mode & MODE_NOTATION_3))
+		elsif ($IS_NOTATION_3||$IS_SPARQL and $self->_peek('?'))
 		{
 			$self->_pull_variable;
 		}
-		elsif (($self->_peek('*')) && ($mode & MODE_SPARQL_QUERY))
+		elsif ($IS_SPARQL and $self->_peek('$'))
+		{
+			$self->_pull_variable;
+		}
+		elsif ($IS_SPARQL and $self->_peek('*'))
 		{
 			$self->_pull_token('*', Variable);
 		}
-		elsif (($self->_peek('"""') || $self->_peek("'''")) && ($mode & MODE_TURTLE))
+		elsif ($ABOVE_NTRIPLES and $self->_peek('"""') || $self->_peek("'''"))
 		{
 			$self->_pull_longstring;
 		}
-		elsif ($self->_peek('"') || $self->_peek("'"))
+		elsif ($ABOVE_NTRIPLES and $self->_peek("'"))
 		{
 			$self->_pull_shortstring;
 		}
-		elsif (($mode & MODE_SPARQL_QUERY) and $matches = $self->_peek(qr/^(prefix|base|select|distinct|from\s+named|from|where|graph|ask|describe|construct|filter|optional|union|unsaid|not\s+exists|order\s+by|limit|offset|reduced|project)/i))
+		elsif ($self->_peek('"'))
 		{
-			$self->_pull_token($matches->[0], SparqlWord);
+			$self->_pull_shortstring;
 		}
-		elsif (($mode & MODE_SPARQL_UPDATE) and $matches = $self->_peek(qr/^(insert|into|delete|load|modify|data|clear|silent)/i))
+		elsif ($IS_SPARQL and $matches = $self->_peek($sparqlKeyword))
 		{
-			$self->_pull_token($matches->[0], SparqlWord);
+			$self->_pull_token($matches->[0], Sparql_Keyword);
 		}
-		elsif (($mode & MODE_SPARQL_QUERY) and $matches = $self->_peek(qr/^(asc|desc)/i))
+		elsif ($IS_SPARQL and $matches = $self->_peek($sparqlFunction))
 		{
-			$self->_pull_token($matches->[0], SparqlOrdering);
+			$self->_pull_token($matches->[0], Sparql_Function);
 		}
-		elsif (($mode & MODE_SPARQL_QUERY) and $matches = $self->_peek(qr/^(bound|isiri|isblank|isliteral|str|lang|datatype|\|\||\&\&|=|!|sameterm|langmatches|regex)/i))
+		elsif ($IS_SPARQL and $matches = $self->_peek($sparqlAggregate))
 		{
-			$self->_pull_token($matches->[0], SparqlOperator);
+			$self->_pull_token($matches->[0], Sparql_Aggregate);
 		}
-		elsif ($mode & MODE_TURTLE and $matches = $self->_peek(qr/^(true|false)\b/i))
+		elsif ($IS_SPARQL and $matches = $self->_peek($sparqlOrdering))
+		{
+			$self->_pull_token($matches->[0], Sparql_Ordering);
+		}
+		elsif ($IS_SPARQL and $matches = $self->_peek($sparqlOperator))
+		{
+			$self->_pull_token($matches->[0], Sparql_Operator);
+		}
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^(true|false)\b/i))
 		{
 			$self->_pull_token($matches->[0], Boolean);
 		}
-		elsif ($self->_peek('a') && ($mode & MODE_TURTLE))
+		elsif ($ABOVE_NTRIPLES and $self->_peek('a'))
 		{
 			$self->_pull_token('a', Shorthand);
 		}
-		elsif ($self->_peek('=>') && ($mode & MODE_NOTATION_3))
+		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^(=|=>|<=)/))
 		{
-			$self->_pull_token('=>', Shorthand);
+			$self->_pull_token($matches->[0], Shorthand);
 		}
-		elsif ($self->_peek('<=') && ($mode & MODE_NOTATION_3))
+		elsif ($IS_NOTATION_3 and $matches = $self->_peek(qr/^(is|of)/i))
 		{
-			$self->_pull_token('<=', Shorthand);
+			$self->_pull_token($matches->[0], IsOf);
 		}
-		elsif ($self->_peek('=') && ($mode & MODE_NOTATION_3))
-		{
-			$self->_pull_token('=', Shorthand);
-		}
-		elsif ($self->_peek('is') && ($mode & MODE_NOTATION_3))
-		{
-			$self->_pull_token('is', IsOf);
-		}
-		elsif ($self->_peek('of') && ($mode & MODE_NOTATION_3))
-		{
-			$self->_pull_token('of', IsOf);
-		}
-		elsif (($mode & MODE_TURTLE) and $matches = $self->_peek(qr/^([$nameStartChar][$nameChar]*)/))
+		elsif ($ABOVE_NTRIPLES and $matches = $self->_peek(qr/^([$nameStartChar][$nameChar]*)/))
 		{
 			$self->_pull_token($matches->[0], Name);
 		}
-		elsif ($matches = $self->_peek(qr/^([^\s\r\n]+)[\s\r\n]/))
+		elsif ($matches = $self->_peek(qr/^([^\s\r\n]+)[\s\r\n]/ms))
 		{
 			$self->_pull_token($matches->[0], Unknown);
 		}		
-		elsif ($matches = $self->_peek(qr/^([^\s\r\n]+)$/))
+		elsif ($matches = $self->_peek(qr/^([^\s\r\n]+)$/ms))
 		{
 			$self->_pull_token($matches->[0], Unknown);
 		}
