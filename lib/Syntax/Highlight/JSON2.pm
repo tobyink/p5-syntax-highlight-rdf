@@ -190,3 +190,80 @@ use warnings;
 
 1;
 
+__END__
+
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+Syntax::Highlight::JSON2 - syntax highlighting for JSON
+
+=head1 SYNOPSIS
+
+  use Syntax::Highlight::JSON2;
+  my $syntax = "Syntax::Highlight::JSON2"->new;
+  print $syntax->highlight($filehandle);
+
+=head1 DESCRIPTION
+
+Outputs pretty syntax-highlighted HTML for JSON. (Actually just
+adds C<< <span> >> elements with C<< class >> attributes. You're expected to
+bring your own CSS.)
+
+There's nothing significant in the number "2" in the name of this module.
+There was just already a L<Syntax::Highlight::JSON> on CPAN, which seems
+completely undocumented so I'm a little scared to use it!
+
+=head2 Methods
+
+=over
+
+=item C<< highlight($input) >>
+
+Highlight some JSON.
+
+C<< $input >> may be a file handle, filename or a scalar ref of text.
+
+Returns a string of HTML.
+
+=item C<< tokenize($input) >>
+
+This is mostly intended for subclassing Syntax::Highlight::JSON.
+
+C<< $input >> may be a file handle, filename or a scalar ref of text.
+
+Returns an arrayref of token objects. The exact API for the token objects
+is subject to change, but currently they support C<< TYPE >> and
+C<< spelling >> methods.
+
+=back
+
+=head1 BUGS
+
+Please report any bugs to
+L<http://rt.cpan.org/Dist/Display.html?Queue=Syntax-Highlight-RDF>.
+
+=head1 SEE ALSO
+
+L<Syntax::Highlight::RDF>,
+L<Syntax::Highlight::XML>.
+
+=head1 AUTHOR
+
+Toby Inkster E<lt>tobyink@cpan.orgE<gt>.
+
+=head1 COPYRIGHT AND LICENCE
+
+This software is copyright (c) 2013 by Toby Inkster.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=head1 DISCLAIMER OF WARRANTIES
+
+THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+

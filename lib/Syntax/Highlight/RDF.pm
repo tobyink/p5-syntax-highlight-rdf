@@ -758,6 +758,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::NTriples;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
@@ -765,6 +767,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::Turtle;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -773,6 +777,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::Notation_3;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -782,6 +788,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::SPARQL_Query;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -791,6 +799,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::SPARQL_Update;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -800,6 +810,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::Pretdsl;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -810,6 +822,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::NQuads;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
@@ -817,6 +831,8 @@ sub highlight
 
 {
 	package Syntax::Highlight::RDF::TriG;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -876,7 +892,7 @@ Syntax::Highlight::RDF - syntax highlighting for various RDF-related formats
 
 Outputs pretty syntax-highlighted HTML for RDF-related formats. (Actually just
 adds C<< <span> >> elements with C<< class >> attributes. You're expected to
-bring your own CSS.
+bring your own CSS.)
 
 =head2 Formats
 
@@ -959,6 +975,9 @@ Please report any bugs to
 L<http://rt.cpan.org/Dist/Display.html?Queue=Syntax-Highlight-RDF>.
 
 =head1 SEE ALSO
+
+L<Syntax::Highlight::JSON2>,
+L<Syntax::Highlight::XML>.
 
 L<PPI::HTML>,
 L<Syntax::Highlight::Engine::Kate>.
