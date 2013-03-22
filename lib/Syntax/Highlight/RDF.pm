@@ -71,6 +71,23 @@ use Throwable::Factory
 {
 	use HTML::HTML5::Entities qw/encode_entities/;
 	no strict 'refs';
+	
+	my $unescape = sub
+	{
+		my $u = $_[0];
+		$u =~ s{
+			(  \\  ([\\nrt"]|U[A-Fa-f0-9]{8}|u[A-Fa-f0-9]{4})  )
+		}{
+			$2 eq "\\"    ? "\\" :
+			$2 eq "n"     ? "\n" :
+			$2 eq "r"     ? "\r" :
+			$2 eq "t"     ? "\t" :
+			$2 eq '"'     ? "\"" :
+			chr hex("0x".substr($2, 1))
+		}exg;
+		return $u;
+	};
+	
 	*{Feature    . "::tok"}        = sub { sprintf "%s~", $_[0]->TYPE };
 	*{Token      . "::tok"}        = sub { sprintf "%s[%s]", $_[0]->TYPE, $_[0]->spelling };
 	*{Whitespace . "::tok"}        = sub { $_[0]->TYPE };
@@ -80,7 +97,7 @@ use Throwable::Factory
 		sprintf "<span class=\"rdf_%s\">%s</span>", lc $_[0]->TYPE, encode_entities($_[0]->spelling)
 	};
 	*{Whitespace . "::TO_HTML"}  = sub { $_[0]->spelling };
-	*{URIRef     . "::uri"}      = sub { my $u = $_[0]->spelling; substr $u, 1, length($u)-2 };  # XXX - unescape
+	*{URIRef     . "::uri"}      = sub { my $u = $_[0]->spelling; $unescape->(substr $u, 1, length($u)-2) };
 	*{CURIE      . "::prefix"}   = sub { (split ":", $_[0]->spelling)[0] };
 	*{CURIE      . "::suffix"}   = sub { (split ":", $_[0]->spelling)[1] };
 	*{PrefixDefinition_Start . "::tok"} = sub {
@@ -415,15 +432,17 @@ sub _pull_whitespace
 sub _pull_uri
 {
 	my $self = shift;
-	$self->_pull_token($1, URIRef)
-		if ${$self->_remaining} =~ m/^(<(?:\\\\|\\>|\\<|[^<>\\]){0,1024}>)/;
+	return $self->_pull_token($1, URIRef)
+		if ${$self->_remaining} =~ m/^(<(?:\\\\|\\.|[^<>\\]){0,1024}>)/;
+	$self->_pull_token("<", Unknown);
 }
 
 sub _pull_curie
 {
 	my $self = shift;
-	$self->_pull_token($1, CURIE)
+	return $self->_pull_token($1, CURIE)
 		if ${$self->_remaining} =~ m/^(([$nameStartChar2][$nameChar]*)?:([$nameStartChar2][$nameChar]*)?)/;
+	$self->_pull_token(substr(${$self->_remaining}, 0, 1), Unknown);
 }
 
 # Same rules as RDF::TrineX::Parser::Pretdsl
@@ -586,7 +605,7 @@ sub tokenize
 		{
 			$self->_pull_token($matches->[0], Language);
 		}
-		elsif ($matches = $self->_peek(qr/^(#.*)(\r|\n|$)/ims))
+		elsif ($matches = $self->_peek(qr/^(#.*?)(?:\r|\n|$)/is))
 		{
 			$self->_pull_token($matches->[0], Comment);
 		}
@@ -756,16 +775,13 @@ sub _resolve_uri
 	require URI;
 	
 	# Where the base itself is relative
-	if (not URI->new($base)->scheme)
+	if (!URI->new($relative)->scheme and !URI->new($base)->scheme)
 	{
-		if ($base =~ m{^/})
-		{
-			return "URI"->new_abs(@_)->as_string;
-		}
-		else
-		{
-			return substr("URI"->new_abs(@_)->as_string, 1);
-		}
+		return (
+			$base =~ m{^/}
+				? "URI"->new_abs(@_)->as_string
+				: substr("URI"->new_abs(@_)->as_string, 1)
+		);
 	}
 	
 	"URI"->new_abs(@_)->as_string;

@@ -20,6 +20,7 @@ __DATA__
 @prefix quux: <quux#>.
 
 <xyz>
+   foo:foo <\U00000061bc>
    foo:bar 123;
    foo:baz "Yeah\"Baby\"Yeah";
    foo:bum quux:quuux.
