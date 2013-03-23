@@ -4,3 +4,9 @@
 	issued  2013-03-22;
 	label   "Initial release".
 
+`Syntax-Highlight-RDF 0.002 cpan:TOBYINK`
+	issued  2013-03-23;
+	changeset [
+		item "Fix fatal UTF-8-related warning on certain Perls."^^Bugfix;
+	].
+

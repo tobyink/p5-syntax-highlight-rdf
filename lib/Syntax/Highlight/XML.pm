@@ -6,7 +6,7 @@ use warnings;
 	package Syntax::Highlight::XML;
 
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.001';
+	our $VERSION   = '0.002';
 	
 	our %STYLE = (
 		xml_pointy      => '',
