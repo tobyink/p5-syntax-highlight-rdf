@@ -6,7 +6,7 @@ use warnings;
 	package Syntax::Highlight::JSON2;
 
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	
 	use MooX::Struct -retain, -rw,
 		Feature                   => [],

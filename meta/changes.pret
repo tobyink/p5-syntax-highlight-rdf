@@ -10,3 +10,10 @@
 		item "Fix fatal UTF-8-related warning on certain Perls."^^Bugfix;
 	].
 
+
+`Syntax-Highlight-RDF 0.003 cpan:TOBYINK`
+	issued    2014-09-11;
+	changeset [
+		item "Switch to Dist::Inkt."^^Packaging;
+	].
+

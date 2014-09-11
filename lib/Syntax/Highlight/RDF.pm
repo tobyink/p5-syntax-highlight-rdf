@@ -6,7 +6,7 @@ use warnings;
 
 BEGIN {
 	$Syntax::Highlight::RDF::AUTHORITY = 'cpan:TOBYINK';
-	$Syntax::Highlight::RDF::VERSION   = '0.002';
+	$Syntax::Highlight::RDF::VERSION   = '0.003';
 }
 
 use MooX::Struct -retain, -rw,
@@ -964,7 +964,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::NTriples;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
@@ -978,7 +978,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::Turtle;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -995,7 +995,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::Notation_3;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -1011,7 +1011,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::SPARQL_Query;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -1022,7 +1022,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::SPARQL_Update;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -1033,7 +1033,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::Pretdsl;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
@@ -1045,7 +1045,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::NQuads;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES;
@@ -1059,7 +1059,7 @@ sub highlight
 {
 	package Syntax::Highlight::RDF::TriG;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.002';
+	our $VERSION   = '0.003';
 	use Moo;
 	extends "Syntax::Highlight::RDF";
 	use constant mode => Syntax::Highlight::RDF::MODE_NTRIPLES
